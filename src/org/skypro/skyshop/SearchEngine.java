@@ -1,43 +1,48 @@
 package org.skypro.skyshop;
-
-import com.sun.source.tree.Tree;
 import org.skypro.skyshop.exceptions.BestResultNotFound;
-
 import java.util.*;
 
 
 public class SearchEngine {
 
-    List<Searchable> searchList;
+    HashSet<Searchable> searchList;
 
     public SearchEngine() {
-        this.searchList = new ArrayList<>();
+        this.searchList = new HashSet<>();
     }
 
     public void addItem(Searchable object) {
         searchList.add(object);
     }
 
-    public Map<String, Searchable> search(String searchTerm) {
-        Map<String, Searchable> results = new TreeMap<>();
-        Iterator<Searchable> searchlistIterator = searchList.iterator();
-        while (searchlistIterator.hasNext()) {
-            Searchable object = searchlistIterator.next();
+    public TreeSet<Searchable> search(String searchTerm) {
+        TreeSet<Searchable> results = new TreeSet<>(new Comparator<Searchable>() {
+            @Override
+            public int compare(Searchable o1, Searchable o2) {
+                int compareLength = Integer.compare(o2.getObjName().length(), o1.getObjName().length());
+                if (compareLength != 0) return compareLength;
+                else return o1.getObjName().compareTo(o2.getObjName());
+            }
+        });
+        for (Searchable object : searchList) {
             if (object.getSearchTerm().toLowerCase().replace(" ", "").
                     contains(searchTerm.toLowerCase().replace(" ", ""))) {
-                results.put(object.getObjName(), object);
+                results.add(object);
             }
         }
         return results;
     }
 
     public Searchable getBestMatch(String search) throws BestResultNotFound {
+        List<Searchable> objects = new ArrayList<>(searchList);
         String substring = search.replace(" ", "").toLowerCase();
         int countSubstringLast = 0;
         int resultIndex = -1;
 
-        for (int i = 0; i < searchList.size(); i++) {
-                String text = searchList.get(i).getSearchTerm().replace(" ", "").toLowerCase();
+        Iterator<Searchable> searchlistIterator = searchList.iterator();
+        while (searchlistIterator.hasNext()) {
+            for (int i = 0; i < searchList.size(); i++) {
+                String text = searchlistIterator.next().getSearchTerm().replace(" ", "").toLowerCase();
                 int counter = 0;
                 int index = 0;
 
@@ -49,11 +54,12 @@ public class SearchEngine {
                     countSubstringLast = counter;
                     resultIndex = i;
                 }
+            }
+            if (resultIndex == -1) {
+                throw new BestResultNotFound();
+            }
         }
-        if (resultIndex == -1) {
-            throw new BestResultNotFound();
-        }
-        return searchList.get(resultIndex);
+        return objects.get(resultIndex);
     }
 
     public String toString() {
